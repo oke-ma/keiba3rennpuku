@@ -27,7 +27,7 @@ except:
     st.stop()
 
 # モデル設定
-model = genai.GenerativeModel("gemini-1.5-pro")
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 # システムプロンプト (あなたの作った最強の命令書)
 SYSTEM_PROMPT = """
