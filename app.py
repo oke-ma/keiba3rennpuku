@@ -30,7 +30,7 @@ except:
 
 # --- モデル設定 (診断で判明した最新モデル) ---
 # リストにあった「gemini-2.5-pro」を使用します
-model = genai.GenerativeModel("gemini-2.5-pro")
+model = genai.GenerativeModel("gemini-2.0-flash")
 
 # --- システムプロンプト ---
 SYSTEM_PROMPT = """
