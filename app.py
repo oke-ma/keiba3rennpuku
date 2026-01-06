@@ -29,7 +29,7 @@ except:
     st.stop()
 
 # --- モデル設定 (Flashを使用) ---
-model = genai.GenerativeModel("gemini-1.5-flash")
+model = genai.GenerativeModel("gemini-pro")
 
 # --- システムプロンプト ---
 SYSTEM_PROMPT = """
