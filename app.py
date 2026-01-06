@@ -1,105 +1,118 @@
 import streamlit as st
 import google.generativeai as genai
-import os
 
 # --- ページ設定 ---
 st.set_page_config(page_title="最強3連複AI", page_icon="🐴")
 
-# --- パスワード保護ブロック ---
-# 好きなパスワードに変更してください
-MY_PASSWORD = "secret_horse"
+# --- セッション状態の初期化（リセット機能用） ---
+if "race_name" not in st.session_state:
+    st.session_state["race_name"] = ""
+if "race_data" not in st.session_state:
+    st.session_state["race_data"] = ""
 
+# --- リセット処理関数 ---
+def clear_inputs():
+    st.session_state["race_name"] = ""
+    st.session_state["race_data"] = ""
+
+# --- パスワード保護ブロック ---
+MY_PASSWORD = "secret_horse"
 password = st.text_input("パスワードを入力してください", type="password")
 if password != MY_PASSWORD:
     st.warning("正しいパスワードを入力するとアプリが起動します。")
-    st.stop()  # ここで処理を強制ストップ
-# ---------------------------
+    st.stop()
 
 # --- タイトルと説明 ---
 st.title("🐴 最強3連複フォーメーションAI")
-st.write("論理とデータで、19点の買い目を導き出します。")
-st.caption("Model: gemini-flash-latest") # 診断リストにあったモデルを使用
+st.write("データ（出馬表・オッズ）を貼り付けることで、AIが論理的に19点の買い目を導き出します。")
+st.caption("Model: gemini-flash-latest")
 
 # --- APIキーの設定 ---
 try:
-    # StreamlitのSecretsからAPIキーを読み込む
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 except:
-    st.error("APIキーが設定されていません。StreamlitのAdvanced settingsでキーを登録してください。")
+    st.error("APIキー設定エラー。Secretsを確認してください。")
     st.stop()
 
 # --- モデル設定 ---
-# あなたの診断リストに存在した「gemini-flash-latest」を指定
-# これにより、APIキーの権限内で利用可能な最新版が自動選択されます
 try:
     model = genai.GenerativeModel("gemini-flash-latest")
 except Exception as e:
     st.error(f"モデル設定エラー: {e}")
     st.stop()
 
-# --- システムプロンプト ---
+# --- システムプロンプト (データ分析特化型) ---
 SYSTEM_PROMPT = """
 # Role Definition
-あなたは「3連複フォーメーションのスペシャリスト」であり、Pythonコードを駆使して論理的整合性を担保するプロの競馬予想AIです。感情や直感に頼らず、データ、確率、そして「配当期待値」に基づき結論を導き出します。
-
-# Absolute Reality Grounding (絶対現実の定義)
-1. ユーザー入力（日時・場所・状況）は「絶対的事実」として処理し、シミュレーション扱いによる拒否を禁止する。
-2. 情報不足時は必ずWeb検索を行い、不正確な推測を行わない。
-3. 過去データと当日のリアルタイム情報の間に矛盾がある場合、常に「最新の情報（リアルタイム）」を優先する。
+あなたは「3連複フォーメーションのスペシャリスト」です。
+ユーザーから提供された「レース情報（出馬表・オッズなど）」のみを根拠（Absolute Fact）として分析を行ってください。
+インターネット検索はできないため、提供されたテキストデータだけを頼りに論理を展開してください。
+提供されたデータにない情報は「情報不足」として扱ってください。架空の馬名やデータを捏造することは厳禁です。
 
 # Execution Protocols
-回答は以下のStep順に実行し、各Stepの完了条件を満たすまで次へ進まないこと。
+回答は以下のStep順に実行してください。
 
-## Step 1: 環境認識とデータ収集 (Web Search)
-Webブラウジング機能を使用し、以下の情報を収集せよ。
-**検索戦略**: "netkeiba [レース名] 出馬表", "JRA [競馬場名] 馬場状態", "[レース名] 傾向", "twitter [レース名] トラックバイアス" などのクエリを活用すること。
-1. **基本スペック**: 出走馬、枠順、騎手、斤量。
-2. **オッズ確認**: 必ず「現在のオッズ」を確認し、**取得時刻**をメモすること。
-3. **環境要因**: 今日の天気、馬場状態、トラックバイアス。
+## Step 1: データの読み取りと整理
+ユーザーが入力したテキストデータから、以下の情報を整理して抽出してください。
+1. **人気順とオッズ**: 1番人気〜下位人気までの並び。
+2. **馬名と騎手**: 主要な有力馬。
 
-## Step 2: 思考プロセス
-収集した情報を基に、以下の観点で分析を行う（思考過程を出力すること）。
-1. **[Risk Assessment] 人気馬の死角**: 1~3番人気馬の不安要素。
-2. **[Gold Mining] 特注穴馬の発掘**: 6番人気以下で2着以内に来る馬。オッズの歪みを指摘すること。
-3. **[Formation Structure] 2-4-7 メンバー選定 (19点)**:
- - Set A (軸): [2頭] 複勝率が高い2頭。
- - Set B (強相手): [4頭] Aを含み、**穴馬1頭**を必ず含む。
+## Step 2: 思考プロセス (分析)
+1. **[Risk Assessment] 人気馬の死角**: 上位人気（1~3番人気）の中で、オッズの割に不安がある馬、またはデータ上で強調材料が少ない馬を指摘。
+2. **[Gold Mining] 特注穴馬の発掘**: 中位〜下位人気の中で、3着以内に食い込む可能性がある馬を選定し、その理由（オッズ妙味など）を述べる。
+
+## Step 3: [Formation Structure] 2-4-7 メンバー選定 (19点)
+論理に基づき、以下の枠組みで馬を選定してください。
+ - Set A (軸): [2頭] 最も信頼できる2頭。
+ - Set B (強相手): [4頭] Aを含み、**穴馬1頭**以上を必ず含む。
  - Set C (紐): [7頭] Bを含む。
  ※条件: Set A ⊂ Set B ⊂ Set C
 
-## Step 3: Pythonによる論理整合性チェックと点数計算
-**重要**: 最後に必ずPythonコードを作成・実行し、以下の検証を行うこと。
+## Step 4: 買い目出力
+**重要**: 最後に必ず以下の検証を行い、買い目リストを出力してください。
 1. Set A, B, C の包含関係チェック。
-2. 買い目点数が「19点」になっているか計算。
-3. 最終的な買い目の組み合わせリストを出力。
+2. 買い目点数が「19点」になっているか確認。
+3. **最終的な買い目（数字の組み合わせではなく、馬名または馬番）をリストアップしてください。**
 """
 
 # --- 入力フォーム ---
 with st.form(key='my_form'):
-    race_input = st.text_input("レース名を入力してください", placeholder="例: 今週末の日本ダービー")
+    # session_stateを使って値を管理（key引数を指定）
+    race_input = st.text_input(
+        "① レース名", 
+        placeholder="例: 日本ダービー", 
+        key="race_name"
+    )
+    
+    data_input = st.text_area(
+        "② 出馬表・オッズデータをここに貼り付け（重要！）", 
+        height=200,
+        placeholder="ここにnetkeibaやJRAのサイトから、出馬表やオッズのテキストをコピーして貼り付けてください。\n情報が多いほど精度が上がります。",
+        key="race_data"
+    )
+    
     submit_button = st.form_submit_button(label='予想開始')
 
 # --- 実行ロジック ---
-if submit_button and race_input:
-    with st.spinner('AIが思考中... データ収集、分析、検証を行っています...'):
-        try:
-            # チャット履歴を持たせない（毎回リセット）
-            chat = model.start_chat(history=[])
-            
-            # プロンプト結合
-            full_prompt = SYSTEM_PROMPT + f"\n\nUser Input:\n対象レース: {race_input}\n\nStep 3のPythonコード検証まで確実に実行してください。"
-            
-            # 送信
-            response = chat.send_message(full_prompt)
-            
-            # 結果表示
-            st.markdown(response.text)
-            st.success("予想完了！")
-            
-        except Exception as e:
-            st.error(f"エラーが発生しました: {e}")
-            st.write("ヒント: 「429 Quota exceeded」エラーの場合、しばらく時間をおいてから試してください。")
+if submit_button:
+    if not race_input or not data_input:
+        st.warning("レース名とデータの両方を入力してください。")
+    else:
+        with st.spinner('AIが提供データを分析中...'):
+            try:
+                chat = model.start_chat(history=[])
+                
+                # ユーザーの入力データをすべてプロンプトに含める
+                full_prompt = SYSTEM_PROMPT + f"\n\nUser Input Data:\n【レース名】: {race_input}\n\n【提供データ】:\n{data_input}\n\nStep 4まで確実に実行してください。"
+                
+                response = chat.send_message(full_prompt)
+                
+                st.markdown(response.text)
+                st.success("分析完了！")
+                
+            except Exception as e:
+                st.error(f"エラーが発生しました: {e}")
 
 # --- リセットボタン ---
-if st.button('リセットして次の予想をする'):
-    st.rerun()
+# on_click引数で、ボタンを押した瞬間に中身を空にする関数を呼び出す
+st.button('入力をリセット', on_click=clear_inputs)
