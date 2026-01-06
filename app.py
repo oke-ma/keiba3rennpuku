@@ -29,7 +29,6 @@ except:
     st.stop()
 
 # --- モデル設定 (診断で判明した最新モデル) ---
-# リストにあった「gemini-2.5-pro」を使用します
 model = genai.GenerativeModel("gemini-2.0-flash")
 
 # --- システムプロンプト ---
