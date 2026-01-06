@@ -1,5 +1,8 @@
 import streamlit as st
 import google.generativeai as genai
+
+# ページ設定
+st.set_page_config(page_title="最強3連複AI", page_icon="🐴")
 # --- パスワード保護ブロック ---
 import os
 
@@ -11,9 +14,6 @@ if password != MY_PASSWORD:
     st.warning("正しいパスワードを入力するとアプリが起動します。")
     st.stop()  # ここで処理を強制ストップ
 # ---------------------------
-# ページ設定
-st.set_page_config(page_title="最強3連複AI", page_icon="🐴")
-
 # タイトル
 st.title("🐴 最強3連複フォーメーションAI")
 st.write("論理とデータで、19点の買い目を導き出します。")
