@@ -1,6 +1,16 @@
 import streamlit as st
 import google.generativeai as genai
+# --- パスワード保護ブロック ---
+import os
 
+# パスワード設定 (好きな文字列に変えてOKです)
+MY_PASSWORD = "secret_horse"
+
+password = st.text_input("パスワードを入力してください", type="password")
+if password != MY_PASSWORD:
+    st.warning("正しいパスワードを入力するとアプリが起動します。")
+    st.stop()  # ここで処理を強制ストップ
+# ---------------------------
 # ページ設定
 st.set_page_config(page_title="最強3連複AI", page_icon="🐴")
 
