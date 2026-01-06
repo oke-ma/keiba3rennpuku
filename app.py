@@ -3,6 +3,7 @@ import google.generativeai as genai
 
 # ページ設定
 st.set_page_config(page_title="最強3連複AI", page_icon="🐴")
+
 # --- パスワード保護ブロック ---
 import os
 
