@@ -18,7 +18,7 @@ if password != MY_PASSWORD:
 # --- タイトルと説明 ---
 st.title("🐴 最強3連複フォーメーションAI")
 st.write("論理とデータで、19点の買い目を導き出します。")
-st.caption("Model: gemini-2.5-pro") # 最新モデルを使用
+st.caption("Model: gemini-2.0-flash") # 最新モデルを使用
 
 # --- APIキーの設定 ---
 try:
