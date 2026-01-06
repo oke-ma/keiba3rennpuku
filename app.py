@@ -18,7 +18,7 @@ if password != MY_PASSWORD:
 # --- タイトルと説明 ---
 st.title("🐴 最強3連複フォーメーションAI")
 st.write("論理とデータで、19点の買い目を導き出します。")
-st.caption("Model: gemini-2.0-flash") # 最新モデルを使用
+st.caption("Model: gemini-flash-latest") # 診断リストにあったモデルを使用
 
 # --- APIキーの設定 ---
 try:
@@ -28,8 +28,14 @@ except:
     st.error("APIキーが設定されていません。StreamlitのAdvanced settingsでキーを登録してください。")
     st.stop()
 
-# --- モデル設定 (診断で判明した最新モデル) ---
-model = genai.GenerativeModel("gemini-2.0-flash")
+# --- モデル設定 ---
+# あなたの診断リストに存在した「gemini-flash-latest」を指定
+# これにより、APIキーの権限内で利用可能な最新版が自動選択されます
+try:
+    model = genai.GenerativeModel("gemini-flash-latest")
+except Exception as e:
+    st.error(f"モデル設定エラー: {e}")
+    st.stop()
 
 # --- システムプロンプト ---
 SYSTEM_PROMPT = """
@@ -92,6 +98,7 @@ if submit_button and race_input:
             
         except Exception as e:
             st.error(f"エラーが発生しました: {e}")
+            st.write("ヒント: 「429 Quota exceeded」エラーの場合、しばらく時間をおいてから試してください。")
 
 # --- リセットボタン ---
 if st.button('リセットして次の予想をする'):
