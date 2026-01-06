@@ -1,13 +1,12 @@
 import streamlit as st
 import google.generativeai as genai
+import os
 
-# ページ設定
+# --- ページ設定 ---
 st.set_page_config(page_title="最強3連複AI", page_icon="🐴")
 
 # --- パスワード保護ブロック ---
-import os
-
-# パスワード設定 (好きな文字列に変えてOKです)
+# 好きなパスワードに変更してください
 MY_PASSWORD = "secret_horse"
 
 password = st.text_input("パスワードを入力してください", type="password")
@@ -15,21 +14,24 @@ if password != MY_PASSWORD:
     st.warning("正しいパスワードを入力するとアプリが起動します。")
     st.stop()  # ここで処理を強制ストップ
 # ---------------------------
-# タイトル
+
+# --- タイトルと説明 ---
 st.title("🐴 最強3連複フォーメーションAI")
 st.write("論理とデータで、19点の買い目を導き出します。")
+st.caption("Model: gemini-1.5-flash")
 
-# APIキーの取得 (StreamlitのSecretsから読み込む設定)
+# --- APIキーの設定 ---
 try:
+    # StreamlitのSecretsからAPIキーを読み込む
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 except:
-    st.error("APIキーが設定されていません。Streamlitの設定画面でキーを登録してください。")
+    st.error("APIキーが設定されていません。StreamlitのAdvanced settingsでキーを登録してください。")
     st.stop()
 
-# モデル設定
+# --- モデル設定 (Flashを使用) ---
 model = genai.GenerativeModel("gemini-1.5-flash")
 
-# システムプロンプト (あなたの作った最強の命令書)
+# --- システムプロンプト ---
 SYSTEM_PROMPT = """
 # Role Definition
 あなたは「3連複フォーメーションのスペシャリスト」であり、Pythonコードを駆使して論理的整合性を担保するプロの競馬予想AIです。感情や直感に頼らず、データ、確率、そして「配当期待値」に基づき結論を導き出します。
@@ -66,12 +68,12 @@ Webブラウジング機能を使用し、以下の情報を収集せよ。
 3. 最終的な買い目の組み合わせリストを出力。
 """
 
-# 入力フォーム
+# --- 入力フォーム ---
 with st.form(key='my_form'):
     race_input = st.text_input("レース名を入力してください", placeholder="例: 今週末の日本ダービー")
     submit_button = st.form_submit_button(label='予想開始')
 
-# 実行ロジック
+# --- 実行ロジック ---
 if submit_button and race_input:
     with st.spinner('AIが思考中... データ収集、分析、検証を行っています...'):
         try:
@@ -91,6 +93,6 @@ if submit_button and race_input:
         except Exception as e:
             st.error(f"エラーが発生しました: {e}")
 
-# リセットボタン（画面更新）
+# --- リセットボタン ---
 if st.button('リセットして次の予想をする'):
     st.rerun()
