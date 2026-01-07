@@ -1,6 +1,5 @@
 import streamlit as st
 import google.generativeai as genai
-from google.generativeai.types import HarmCategory, HarmBlockThreshold
 import pypdf
 
 # --- ページ設定 ---
@@ -26,20 +25,10 @@ st.title("🐴 最強3連複フォーメーションAI")
 st.write("PDFまたはテキストデータを入力してください。レース名も自動で読み取ります。")
 st.caption("Model: gemini-flash-latest")
 
-# --- API設定 (安全設定を追加) ---
+# --- API設定 ---
 try:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    
-    # 競馬予想がブロックされないように安全フィルターを無効化
-    safety_settings = {
-        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-    }
-    
-    model = genai.GenerativeModel("gemini-1.5-flash", safety_settings=safety_settings)
-
+    model = genai.GenerativeModel("gemini-flash-latest")
 except Exception as e:
     st.error(f"設定エラー: {e}")
     st.stop()
@@ -166,18 +155,11 @@ if submit_button:
                 full_prompt = SYSTEM_PROMPT + f"\n\nUser Input Data:\n{final_data_text}\n\nStep 5の検証と買い目出力まで確実に実行してください。"
                 
                 response = chat.send_message(full_prompt)
-                
-                # エラー回避のためのチェックを追加
-                if response.candidates and response.candidates[0].content.parts:
-                    st.markdown(response.text)
-                    st.success("予想完了！")
-                else:
-                    st.error("AIからの応答が空でした。安全フィルターに引っかかった可能性がありますが、設定は緩和済みです。もう一度試すか、入力テキストを少し変更してみてください。")
-                    # デバッグ用に理由を表示
-                    st.write(f"Finish Reason: {response.candidates[0].finish_reason}")
+                st.markdown(response.text)
+                st.success("予想完了！")
                 
             except Exception as e:
-                st.error(f"予期せぬエラーが発生しました: {e}")
+                st.error(f"エラーが発生しました: {e}")
 
 # --- リセットボタン ---
 st.button('入力をリセット', on_click=clear_inputs)
