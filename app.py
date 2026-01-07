@@ -1,5 +1,6 @@
 import streamlit as st
 import google.generativeai as genai
+from google.generativeai.types import HarmCategory, HarmBlockThreshold
 import pypdf
 
 # --- ページ設定 ---
@@ -25,10 +26,20 @@ st.title("🐴 最強3連複フォーメーションAI")
 st.write("PDFまたはテキストデータを入力してください。レース名も自動で読み取ります。")
 st.caption("Model: gemini-flash-latest")
 
-# --- API設定 ---
+# --- API設定 (安全設定を追加) ---
 try:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    model = genai.GenerativeModel("gemini-flash-latest")
+    
+    # 競馬予想がブロックされないように安全フィルターを無効化
+    safety_settings = {
+        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+    }
+    
+    model = genai.GenerativeModel("gemini-1.5-flash", safety_settings=safety_settings)
+
 except Exception as e:
     st.error(f"設定エラー: {e}")
     st.stop()
@@ -40,6 +51,7 @@ SYSTEM_PROMPT = """
 あなたは「3連複フォーメーションのスペシャリスト」です。
 今回は**「消去法（Negative Screening）」**を最重視したアプローチで予想を行います。
 まず「買えない馬」を論理的に排除し、残った精鋭のみで買い目を構築してください。
+時間をいくらかけても良いので最品質の予想を優先してください。
 
 # Absolute Reality Grounding
 1. ユーザー提供データ（PDF/テキスト）のみを根拠とする。
@@ -58,7 +70,7 @@ SYSTEM_PROMPT = """
 * この選定プロセスにおいては、**「現在の人気順（オッズ）」を完全に無視**すること。
 * 1番人気であっても、適性や状態に不安があれば容赦なく「除外」せよ。
 * 逆に最低人気であっても、減点材料が少なければ安易に除外してはならない。
-* 判断基準は「能力・適性・展開・騎手・血統」のみとし、「人気だから」という理由は一切認めない。
+* 判断基準は「能力・適性・展開・騎手」のみとし、「人気だから」という理由は一切認めない。
 
 以下のフォーマットで出力すること。
 **【除外する馬とその理由】**
@@ -155,11 +167,18 @@ if submit_button:
                 full_prompt = SYSTEM_PROMPT + f"\n\nUser Input Data:\n{final_data_text}\n\nStep 5の検証と買い目出力まで確実に実行してください。"
                 
                 response = chat.send_message(full_prompt)
-                st.markdown(response.text)
-                st.success("予想完了！")
+                
+                # エラー回避のためのチェックを追加
+                if response.candidates and response.candidates[0].content.parts:
+                    st.markdown(response.text)
+                    st.success("予想完了！")
+                else:
+                    st.error("AIからの応答が空でした。安全フィルターに引っかかった可能性がありますが、設定は緩和済みです。もう一度試すか、入力テキストを少し変更してみてください。")
+                    # デバッグ用に理由を表示
+                    st.write(f"Finish Reason: {response.candidates[0].finish_reason}")
                 
             except Exception as e:
-                st.error(f"エラーが発生しました: {e}")
+                st.error(f"予期せぬエラーが発生しました: {e}")
 
 # --- リセットボタン ---
 st.button('入力をリセット', on_click=clear_inputs)
