@@ -1,19 +1,16 @@
 import streamlit as st
 import google.generativeai as genai
-import pypdf # PDFを読むためのライブラリ
+import pypdf
 
 # --- ページ設定 ---
 st.set_page_config(page_title="最強3連複AI", page_icon="🐴")
 
 # --- セッション状態の初期化 ---
-if "race_name" not in st.session_state:
-    st.session_state["race_name"] = ""
 if "race_data" not in st.session_state:
     st.session_state["race_data"] = ""
 
 # --- リセット処理関数 ---
 def clear_inputs():
-    st.session_state["race_name"] = ""
     st.session_state["race_data"] = ""
 
 # --- パスワード保護 ---
@@ -25,7 +22,7 @@ if password != MY_PASSWORD:
 
 # --- タイトル ---
 st.title("🐴 最強3連複フォーメーションAI")
-st.write("PDFの出馬表、またはテキストデータを元に予想します。")
+st.write("PDFまたはテキストデータを入力してください。レース名も自動で読み取ります。")
 st.caption("Model: gemini-flash-latest")
 
 # --- API設定 ---
@@ -47,9 +44,10 @@ SYSTEM_PROMPT = """
 回答は以下のStep順に実行してください。
 
 ## Step 1: データの読み取りと整理
-ユーザー入力から以下の情報を抽出してください。
-1. **人気順とオッズ**: わかる範囲で記述。
-2. **馬名と騎手**: 有力馬を中心に。
+ユーザー入力データ全体を分析し、以下の情報を抽出してください。
+1. **対象レース名**: データ内に記載されているレース名（例：日本ダービー、中山11Rなど）。
+2. **人気順とオッズ**: わかる範囲で記述。
+3. **馬名と騎手**: 有力馬を中心に。
 
 ## Step 2: 思考プロセス (分析)
 1. **[Risk Assessment] 人気馬の死角**: 上位人気馬の不安要素。
@@ -70,20 +68,16 @@ SYSTEM_PROMPT = """
 
 # --- 入力フォーム ---
 with st.form(key='my_form'):
-    race_input = st.text_input(
-        "① レース名", 
-        placeholder="例: 日本ダービー", 
-        key="race_name"
-    )
+    st.write("▼ データ入力（PDF または テキスト貼り付け）")
     
-    # PDFアップロード機能
-    st.write("② データ入力（PDF または テキスト貼り付け）")
+    # PDFアップロード
     uploaded_file = st.file_uploader("出馬表のPDFがあればここにアップロード", type="pdf")
     
+    # テキスト貼り付け
     data_input = st.text_area(
         "または、テキストデータをここに貼り付け", 
-        height=150,
-        placeholder="ネット記事やオッズ表をコピーして貼り付ける場合はこちら。",
+        height=200,
+        placeholder="ここに出馬表やオッズのテキストを貼り付けてください。\nレース名もここに含まれていればAIが読み取ります。",
         key="race_data"
     )
     
@@ -94,7 +88,7 @@ if submit_button:
     # データの準備
     final_data_text = ""
     
-    # 1. PDFがアップロードされていたらテキストを抽出
+    # 1. PDF読み込み
     if uploaded_file is not None:
         try:
             reader = pypdf.PdfReader(uploaded_file)
@@ -106,18 +100,19 @@ if submit_button:
         except Exception as e:
             st.error(f"PDFの読み込みに失敗しました: {e}")
 
-    # 2. テキスト欄に入力があれば追加
+    # 2. テキスト追加
     if data_input:
         final_data_text += f"\n【貼り付けられたテキスト】:\n{data_input}\n"
 
-    # データがあるか確認してAIへ送信
-    if not race_input or not final_data_text:
-        st.warning("レース名と、PDFまたはテキストデータのどちらかを入力してください。")
+    # 入力チェック
+    if not final_data_text:
+        st.warning("PDFをアップロードするか、テキストデータを貼り付けてください。")
     else:
-        with st.spinner('AIがデータを分析中...'):
+        with st.spinner('AIがレース名を特定し、データを分析中...'):
             try:
                 chat = model.start_chat(history=[])
-                full_prompt = SYSTEM_PROMPT + f"\n\nUser Input:\n対象レース: {race_input}\n\n提供データ:\n{final_data_text}\n\nStep 4まで確実に実行してください。"
+                # レース名は入力させず、データから探させるプロンプトに変更
+                full_prompt = SYSTEM_PROMPT + f"\n\nUser Input Data:\n{final_data_text}\n\nStep 4まで確実に実行してください。"
                 
                 response = chat.send_message(full_prompt)
                 st.markdown(response.text)
