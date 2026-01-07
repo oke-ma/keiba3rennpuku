@@ -24,9 +24,9 @@ if password != MY_PASSWORD:
 # --- タイトル ---
 st.title("🐴 最強3連複フォーメーションAI")
 st.write("PDFまたはテキストデータを入力してください。レース名も自動で読み取ります。")
-st.caption("Model: gemini-1.5-flash-latest")
+st.caption("Model: gemini-1.5-flash")
 
-# --- API設定 (安全設定 + モデル名修正) ---
+# --- API設定 (安全設定 + 正しいモデル名) ---
 try:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
     
@@ -38,8 +38,8 @@ try:
         HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
     }
     
-    # 修正箇所: モデル名を "gemini-1.5-flash-latest" に変更
-    model = genai.GenerativeModel("gemini-1.5-flash-latest", safety_settings=safety_settings)
+    # 修正箇所: モデル名を基本の "gemini-1.5-flash" に戻し、安全設定を適用
+    model = genai.GenerativeModel("gemini-1.5-flash", safety_settings=safety_settings)
 
 except Exception as e:
     st.error(f"設定エラー: {e}")
