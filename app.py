@@ -2,30 +2,30 @@ import streamlit as st
 import google.generativeai as genai
 import pypdf
 
-# --- ページ設定 ---
+# ページ設定
 st.set_page_config(page_title="最強3連複AI", page_icon="🐴")
 
-# --- セッション状態の初期化 ---
+# セッション状態の初期化
 if "race_data" not in st.session_state:
     st.session_state["race_data"] = ""
 
-# --- リセット処理関数 ---
+# リセット処理関数
 def clear_inputs():
     st.session_state["race_data"] = ""
 
-# --- パスワード保護 ---
+# パスワード保護
 MY_PASSWORD = "secret_horse"
 password = st.text_input("パスワードを入力してください", type="password")
 if password != MY_PASSWORD:
     st.warning("正しいパスワードを入力するとアプリが起動します。")
     st.stop()
 
-# --- タイトル ---
+# タイトル
 st.title("🐴 最強3連複フォーメーションAI")
 st.write("PDFまたはテキストデータを入力してください。レース名も自動で読み取ります。")
 st.caption("Model: gemini-flash-latest")
 
-# --- API設定 ---
+# API設定
 try:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
     model = genai.GenerativeModel("gemini-flash-latest")
@@ -33,8 +33,7 @@ except Exception as e:
     st.error(f"設定エラー: {e}")
     st.stop()
 
-# --- システムプロンプト ---
-# 以下の """ から """ までがAIへの命令文です。消さないでください。
+# システムプロンプト
 SYSTEM_PROMPT = """
 # Role Definition
 あなたは「3連複フォーメーションのスペシャリスト」であり、Pythonコードを駆使して論理的整合性を担保するプロの競馬予想AIです。
@@ -105,7 +104,7 @@ def calculate_formation(set_a, set_b, set_c):
     return True, point_count, sorted(list(valid_bets))
 """
 
---- 入力フォーム ---
+入力フォーム
 with st.form(key='my_form'): st.write("▼ データ入力（PDF または テキスト貼り付け）")
 
 # PDFアップロード
@@ -120,7 +119,7 @@ data_input = st.text_area(
 )
 
 submit_button = st.form_submit_button(label='予想開始')
---- 実行ロジック ---
+実行ロジック
 if submit_button: # データの準備 final_data_text = ""
 
 # 1. PDF読み込み
@@ -155,5 +154,5 @@ else:
             
         except Exception as e:
             st.error(f"エラーが発生しました: {e}")
---- リセットボタン ---
+リセットボタン
 st.button('入力をリセット', on_click=clear_inputs)
