@@ -24,9 +24,9 @@ if password != MY_PASSWORD:
 # --- タイトル ---
 st.title("🐴 最強3連複フォーメーションAI")
 st.write("PDFまたはテキストデータを入力してください。レース名も自動で読み取ります。")
-st.caption("Model: gemini-1.5-flash")
+st.caption("Model: gemini-1.5-flash-001")
 
-# --- API設定 (安全設定 + 正しいモデル名) ---
+# --- API設定 (安全設定 + 確実なモデル名) ---
 try:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
     
@@ -38,8 +38,8 @@ try:
         HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
     }
     
-    # 修正箇所: モデル名を基本の "gemini-1.5-flash" に戻し、安全設定を適用
-    model = genai.GenerativeModel("gemini-1.5-flash", safety_settings=safety_settings)
+    # 修正箇所: バージョン番号付きの正式名称 "gemini-1.5-flash-001" を指定
+    model = genai.GenerativeModel("gemini-1.5-flash-001", safety_settings=safety_settings)
 
 except Exception as e:
     st.error(f"設定エラー: {e}")
@@ -137,48 +137,3 @@ with st.form(key='my_form'):
 
 # --- 実行ロジック ---
 if submit_button:
-    # データの準備
-    final_data_text = ""
-    
-    # 1. PDF読み込み
-    if uploaded_file is not None:
-        try:
-            reader = pypdf.PdfReader(uploaded_file)
-            pdf_text = ""
-            for page in reader.pages:
-                pdf_text += page.extract_text()
-            final_data_text += f"\n【PDFから読み取った内容】:\n{pdf_text}\n"
-            st.info(f"PDFを読み込みました（{len(reader.pages)}ページ）")
-        except Exception as e:
-            st.error(f"PDFの読み込みに失敗しました: {e}")
-
-    # 2. テキスト追加
-    if data_input:
-        final_data_text += f"\n【貼り付けられたテキスト】:\n{data_input}\n"
-
-    # 入力チェック
-    if not final_data_text:
-        st.warning("PDFをアップロードするか、テキストデータを貼り付けてください。")
-    else:
-        with st.spinner('AIが「消去法」を実行し、厳選予想を作成中...'):
-            try:
-                chat = model.start_chat(history=[])
-                # プロンプト結合
-                full_prompt = SYSTEM_PROMPT + f"\n\nUser Input Data:\n{final_data_text}\n\nStep 5の検証と買い目出力まで確実に実行してください。"
-                
-                response = chat.send_message(full_prompt)
-                
-                # エラー回避のためのチェック
-                if response.candidates and response.candidates[0].content.parts:
-                    st.markdown(response.text)
-                    st.success("予想完了！")
-                else:
-                    st.error("AIからの応答が空でした。もう一度試すか、入力テキストを少し変更してみてください。")
-                    if response.candidates:
-                         st.write(f"Finish Reason: {response.candidates[0].finish_reason}")
-                
-            except Exception as e:
-                st.error(f"予期せぬエラーが発生しました: {e}")
-
-# --- リセットボタン ---
-st.button('入力をリセット', on_click=clear_inputs)
