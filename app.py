@@ -2,30 +2,30 @@ import streamlit as st
 import google.generativeai as genai
 import pypdf
 
-# ページ設定
+# --- ページ設定 ---
 st.set_page_config(page_title="最強3連複AI", page_icon="🐴")
 
-# セッション状態の初期化
+# --- セッション状態の初期化 ---
 if "race_data" not in st.session_state:
     st.session_state["race_data"] = ""
 
-# リセット処理関数
+# --- リセット処理関数 ---
 def clear_inputs():
     st.session_state["race_data"] = ""
 
-# パスワード保護
+# --- パスワード保護 ---
 MY_PASSWORD = "secret_horse"
 password = st.text_input("パスワードを入力してください", type="password")
 if password != MY_PASSWORD:
     st.warning("正しいパスワードを入力するとアプリが起動します。")
     st.stop()
 
-# タイトル
+# --- タイトル ---
 st.title("🐴 最強3連複フォーメーションAI")
 st.write("PDFまたはテキストデータを入力してください。レース名も自動で読み取ります。")
 st.caption("Model: gemini-flash-latest")
 
-# API設定
+# --- API設定 ---
 try:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
     model = genai.GenerativeModel("gemini-flash-latest")
@@ -33,7 +33,7 @@ except Exception as e:
     st.error(f"設定エラー: {e}")
     st.stop()
 
-# システムプロンプト
+# --- システムプロンプト (省略なし・完全版) ---
 SYSTEM_PROMPT = """
 # Role Definition
 あなたは「3連複フォーメーションのスペシャリスト」であり、Pythonコードを駆使して論理的整合性を担保するプロの競馬予想AIです。
@@ -102,57 +102,60 @@ def calculate_formation(set_a, set_b, set_c):
             
     point_count = len(valid_bets)
     return True, point_count, sorted(list(valid_bets))
-"""
+    # --- 入力フォーム ---
+with st.form(key='my_form'):
+    st.write("▼ データ入力（PDF または テキスト貼り付け）")
+    
+    # PDFアップロード
+    uploaded_file = st.file_uploader("出馬表のPDFがあればここにアップロード", type="pdf")
+    
+    # テキスト貼り付け
+    data_input = st.text_area(
+        "または、テキストデータをここに貼り付け", 
+        height=200,
+        placeholder="ここに出馬表やオッズのテキストを貼り付けてください。\nレース名もここに含まれていればAIが読み取ります。",
+        key="race_data"
+    )
+    
+    submit_button = st.form_submit_button(label='予想開始')
 
-入力フォーム
-with st.form(key='my_form'): st.write("▼ データ入力（PDF または テキスト貼り付け）")
-
-# PDFアップロード
-uploaded_file = st.file_uploader("出馬表のPDFがあればここにアップロード", type="pdf")
-
-# テキスト貼り付け
-data_input = st.text_area(
-    "または、テキストデータをここに貼り付け", 
-    height=200,
-    placeholder="ここに出馬表やオッズのテキストを貼り付けてください。\nレース名もここに含まれていればAIが読み取ります。",
-    key="race_data"
-)
-
-submit_button = st.form_submit_button(label='予想開始')
-実行ロジック
-if submit_button: # データの準備 final_data_text = ""
-
-# 1. PDF読み込み
-if uploaded_file is not None:
-    try:
-        reader = pypdf.PdfReader(uploaded_file)
-        pdf_text = ""
-        for page in reader.pages:
-            pdf_text += page.extract_text()
-        final_data_text += f"\n【PDFから読み取った内容】:\n{pdf_text}\n"
-        st.info(f"PDFを読み込みました（{len(reader.pages)}ページ）")
-    except Exception as e:
-        st.error(f"PDFの読み込みに失敗しました: {e}")
-
-# 2. テキスト追加
-if data_input:
-    final_data_text += f"\n【貼り付けられたテキスト】:\n{data_input}\n"
-
-# 入力チェック
-if not final_data_text:
-    st.warning("PDFをアップロードするか、テキストデータを貼り付けてください。")
-else:
-    with st.spinner('AIがレース名を特定し、データを分析中...'):
+# --- 実行ロジック ---
+if submit_button:
+    # データの準備
+    final_data_text = ""
+    
+    # 1. PDF読み込み
+    if uploaded_file is not None:
         try:
-            chat = model.start_chat(history=[])
-            # プロンプト結合
-            full_prompt = SYSTEM_PROMPT + f"\n\nUser Input Data:\n{final_data_text}\n\nStep 3の検証と買い目出力まで確実に実行してください。"
-            
-            response = chat.send_message(full_prompt)
-            st.markdown(response.text)
-            st.success("予想完了！")
-            
+            reader = pypdf.PdfReader(uploaded_file)
+            pdf_text = ""
+            for page in reader.pages:
+                pdf_text += page.extract_text()
+            final_data_text += f"\n【PDFから読み取った内容】:\n{pdf_text}\n"
+            st.info(f"PDFを読み込みました（{len(reader.pages)}ページ）")
         except Exception as e:
-            st.error(f"エラーが発生しました: {e}")
-リセットボタン
+            st.error(f"PDFの読み込みに失敗しました: {e}")
+
+    # 2. テキスト追加
+    if data_input:
+        final_data_text += f"\n【貼り付けられたテキスト】:\n{data_input}\n"
+
+    # 入力チェック
+    if not final_data_text:
+        st.warning("PDFをアップロードするか、テキストデータを貼り付けてください。")
+    else:
+        with st.spinner('AIがレース名を特定し、データを分析中...'):
+            try:
+                chat = model.start_chat(history=[])
+                # プロンプト結合
+                full_prompt = SYSTEM_PROMPT + f"\n\nUser Input Data:\n{final_data_text}\n\nStep 3の検証と買い目出力まで確実に実行してください。"
+                
+                response = chat.send_message(full_prompt)
+                st.markdown(response.text)
+                st.success("予想完了！")
+                
+            except Exception as e:
+                st.error(f"エラーが発生しました: {e}")
+
+# --- リセットボタン ---
 st.button('入力をリセット', on_click=clear_inputs)
