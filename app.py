@@ -24,13 +24,13 @@ if password != MY_PASSWORD:
 # --- タイトル ---
 st.title("🐴 最強3連複フォーメーションAI")
 st.write("PDFまたはテキストデータを入力してください。レース名も自動で読み取ります。")
-st.caption("Model: gemini-flash-latest")
+st.caption("Model: gemini-1.5-flash-latest")
 
-# --- API設定 (安全設定を追加) ---
+# --- API設定 (安全設定 + モデル名修正) ---
 try:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
     
-    # 競馬予想がブロックされないように安全フィルターを無効化
+    # 安全フィルターを無効化（競馬予想がブロックされないようにするため）
     safety_settings = {
         HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
         HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
@@ -38,7 +38,8 @@ try:
         HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
     }
     
-    model = genai.GenerativeModel("gemini-1.5-flash", safety_settings=safety_settings)
+    # 修正箇所: モデル名を "gemini-1.5-flash-latest" に変更
+    model = genai.GenerativeModel("gemini-1.5-flash-latest", safety_settings=safety_settings)
 
 except Exception as e:
     st.error(f"設定エラー: {e}")
@@ -51,7 +52,6 @@ SYSTEM_PROMPT = """
 あなたは「3連複フォーメーションのスペシャリスト」です。
 今回は**「消去法（Negative Screening）」**を最重視したアプローチで予想を行います。
 まず「買えない馬」を論理的に排除し、残った精鋭のみで買い目を構築してください。
-時間をいくらかけても良いので最品質の予想を優先してください。
 
 # Absolute Reality Grounding
 1. ユーザー提供データ（PDF/テキスト）のみを根拠とする。
@@ -168,14 +168,14 @@ if submit_button:
                 
                 response = chat.send_message(full_prompt)
                 
-                # エラー回避のためのチェックを追加
+                # エラー回避のためのチェック
                 if response.candidates and response.candidates[0].content.parts:
                     st.markdown(response.text)
                     st.success("予想完了！")
                 else:
-                    st.error("AIからの応答が空でした。安全フィルターに引っかかった可能性がありますが、設定は緩和済みです。もう一度試すか、入力テキストを少し変更してみてください。")
-                    # デバッグ用に理由を表示
-                    st.write(f"Finish Reason: {response.candidates[0].finish_reason}")
+                    st.error("AIからの応答が空でした。もう一度試すか、入力テキストを少し変更してみてください。")
+                    if response.candidates:
+                         st.write(f"Finish Reason: {response.candidates[0].finish_reason}")
                 
             except Exception as e:
                 st.error(f"予期せぬエラーが発生しました: {e}")
